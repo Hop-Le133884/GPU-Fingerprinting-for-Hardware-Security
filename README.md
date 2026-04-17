@@ -42,8 +42,9 @@ To build the data ingestion and machine learning pipeline, ensure your Python en
  Run the following command once per GPU device. The built-in CUDA workload automatically cycles through 0%, 25%, 50%, 75%, and 100% GPU utilization levels (3 seconds each) to produce varied telemetry. The script auto-calibrates the matrix size to achieve consistent timing across different GPU models.
 
  ```bash
- python collect_gpu_telemetry.py --workload --duration 5400 --interval 0.5
+ python collect_gpu_telemetry.py --workload --duration 5400 --interval 1
  ```
+ 
 
  * `--duration 5400` — runs for 90 minutes, capturing thermal stabilization and long-term clock/power variance
  * `--interval 0.5` — samples every 0.5 seconds (~10,800 samples per GPU); going below 0.5s is not recommended as NVML's internal measurement window is ~166ms
