@@ -29,8 +29,6 @@ from pynvml import (
     nvmlDeviceGetTotalEnergyConsumption,
     nvmlDeviceGetUUID,
     nvmlDeviceGetUtilizationRates,
-    nvmlDeviceGetDecoderUtilization,
-    nvmlDeviceGetEncoderUtilization,
     nvmlDeviceGetCurrPcieLinkGeneration,
     nvmlDeviceGetCurrPcieLinkWidth,
     nvmlDeviceGetMaxPcieLinkGeneration,
@@ -136,8 +134,6 @@ def sample_telemetry(handle):
     except NVMLError as err:
         raise RuntimeError(f"NVML sampling failed: {err}")
 
-    encoder_util = safe_nvml_call(nvmlDeviceGetEncoderUtilization, handle)
-    decoder_util = safe_nvml_call(nvmlDeviceGetDecoderUtilization, handle)
     pcie_curr_gen = safe_nvml_call(nvmlDeviceGetCurrPcieLinkGeneration, handle)
     pcie_curr_width = safe_nvml_call(nvmlDeviceGetCurrPcieLinkWidth, handle)
     pcie_max_gen = safe_nvml_call(nvmlDeviceGetMaxPcieLinkGeneration, handle)
@@ -150,8 +146,6 @@ def sample_telemetry(handle):
     sample = {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "gpu_util": util.gpu,
-        "encoder_util": encoder_util,
-        "decoder_util": decoder_util,
         "mem_util": util.memory,
         "mem_total_mib": mem.total // 1024 ** 2,
         "mem_used_mib": mem.used // 1024 ** 2,
@@ -308,8 +302,6 @@ def main():
         "total_memory_mib",
         "performance_state",
         "gpu_util",
-        "encoder_util",
-        "decoder_util",
         "mem_util",
         "mem_total_mib",
         "mem_used_mib",

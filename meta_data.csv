@@ -21,8 +21,6 @@ power_w,feature,float,GPU power consumption in watts,Measures energy use and dyn
 graphics_clock_mhz,feature,float,Graphics clock speed in MHz,Captures GPU clock frequency for graphics/compute domains
 sm_clock_mhz,feature,float,SM clock speed in MHz,Captures the CUDA compute engine frequency directly used by kernels
 memory_clock_mhz,feature,float,Memory clock speed in MHz,Shows memory subsystem frequency and its effect on bandwidth
-encoder_util,feature,float,Encoder utilization percentage,Tracks GPU video encoder load and workload-related activity
-decoder_util,feature,float,Decoder utilization percentage,Tracks GPU video decoder load and workload-related activity
 pcie_curr_gen,feature,integer,Current PCIe link generation,Documents active PCIe link speed for the device
 pcie_curr_width,feature,integer,Current PCIe link width,Documents active PCIe lane width for the device
 pcie_max_gen,feature,integer,Maximum supported PCIe link generation,Shows the hardware PCIe capability for the platform
