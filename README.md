@@ -45,9 +45,10 @@ To build the data ingestion and machine learning pipeline, ensure your Python en
  python collect_gpu_telemetry.py --workload --duration 5400 --interval 1
  ```
  
+ * This will help us collecting ~10,800 samples per GPU --> 365 data points for classifier machine learning model
 
  * `--duration 5400` — runs for 90 minutes, capturing thermal stabilization and long-term clock/power variance
- * `--interval 0.5` — samples every 0.5 seconds (~10,800 samples per GPU); going below 0.5s is not recommended as NVML's internal measurement window is ~166ms
+ * `--interval 1` — samples every 1 seconds (~10,800 samples per GPU),
  * `--workload` — enables the built-in PyTorch matmul stress loop; no external benchmark needed
  * Output is saved automatically as `<GPU_Name>_gpu_telemetry.csv` in the current directory
 
