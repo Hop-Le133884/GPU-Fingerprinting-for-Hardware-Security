@@ -1,0 +1,37 @@
+metric,category,type,description,reason
+
+timestamp,device_metadata,datetime,UTC timestamp for the sample,Records when the telemetry was collected and helps align samples with experiment context
+gpu_index,device_metadata,integer,Index of the GPU used in the system,Identifies which GPU device the data row belongs to
+gpu_name,device_metadata,string,GPU model name from NVML,Provides device provenance and enables grouping by hardware model
+gpu_uuid,device_metadata,string,Unique GPU UUID from NVML,Provides a stable device identifier for provenance and dataset labeling
+driver_version,device_metadata,string,NVIDIA driver version,Documents software environment for reproducibility and comparison
+pci_bus_id,device_metadata,string,PCI bus ID of the GPU,Helps identify the exact hardware slot and platform configuration
+total_memory_mib,device_metadata,integer,Total GPU memory capacity in MiB,Static hardware property useful for device profiling
+performance_state,device_metadata,integer,NVML performance state (P-state),Indicates current GPU performance mode used during measurement
+
+metric,feature_type,type,description,reason
+gpu_util,feature,float,GPU utilization percentage,Measures how much compute capacity is being used by the workload
+mem_util,feature,float,GPU memory utilization percentage,Measures memory pressure during the workload
+mem_total_mib,feature,integer,Total GPU memory reported at sample time,Provides memory size context for the sample
+mem_used_mib,feature,integer,Used GPU memory in MiB,Captures dynamic memory consumption under the workload
+mem_free_mib,feature,integer,Free GPU memory in MiB,Reflects available memory headroom during execution
+mem_used_ratio,feature,float,Ratio of used to total GPU memory,Normalizes memory usage as a fraction for cross-device comparison
+temperature_c,feature,float,GPU temperature in Celsius,Tracks thermal state and its effect on performance
+power_w,feature,float,GPU power consumption in watts,Measures energy use and dynamic power behavior
+graphics_clock_mhz,feature,float,Graphics clock speed in MHz,Captures GPU clock frequency for graphics/compute domains
+sm_clock_mhz,feature,float,SM clock speed in MHz,Captures the CUDA compute engine frequency directly used by kernels
+memory_clock_mhz,feature,float,Memory clock speed in MHz,Shows memory subsystem frequency and its effect on bandwidth
+encoder_util,feature,float,Encoder utilization percentage,Tracks GPU video encoder load and workload-related activity
+decoder_util,feature,float,Decoder utilization percentage,Tracks GPU video decoder load and workload-related activity
+pcie_curr_gen,feature,integer,Current PCIe link generation,Documents active PCIe link speed for the device
+pcie_curr_width,feature,integer,Current PCIe link width,Documents active PCIe lane width for the device
+pcie_max_gen,feature,integer,Maximum supported PCIe link generation,Shows the hardware PCIe capability for the platform
+pcie_max_width,feature,integer,Maximum supported PCIe link width,Shows the hardware lane capacity for the platform
+pcie_throughput_tx_bytes,feature,float,PCIe transmit throughput in bytes/sec,Measures outbound PCIe traffic during the workload
+pcie_throughput_rx_bytes,feature,float,PCIe receive throughput in bytes/sec,Measures inbound PCIe traffic during the workload
+throttle_reasons,feature,integer,NVML clocks throttle reason bitmask,Indicates whether the GPU is being throttled due to thermal or power constraints
+energy_consumption_mj,feature,float,Total energy consumption in millijoules,Tracks cumulative energy consumed by the GPU during execution
+matmul_gflops,feature,float,Estimated matrix multiply throughput in GFLOPS,Measures workload performance in floating-point operations per second
+power_per_gpu_util,feature,float,Watts per percent GPU utilization,Normalizes power consumption relative to utilization
+power_per_gflop,feature,float,Watts per GFLOP,Normalizes power consumption relative to compute throughput
+workload_time_s,feature,float,Duration of the matmul workload in seconds,Measures execution latency and performance under the collected conditions
