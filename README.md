@@ -15,13 +15,23 @@ This project builds an end-to-end GPU hardware fingerprinting pipeline. It colle
 
 ## Prerequisites
 
-```bash
-pip install torch pynvml pandas numpy scipy scikit-learn xgboost matplotlib joblib
-```
-
 - NVIDIA GPU with driver ≥ 520
 - CUDA-capable PyTorch build (`torch.cuda.is_available()` must return `True`)
-- Python 3.9+
+- Python 3.12+
+
+**Recommended: uv**
+```bash
+uv init
+uv add torch nvidia-ml-py pandas numpy scipy scikit-learn xgboost matplotlib joblib
+source .venv/bin/activate
+```
+
+**Alternative: pip**
+```bash
+pip install torch nvidia-ml-py pandas numpy scipy scikit-learn xgboost matplotlib joblib
+```
+
+> Note: use `nvidia-ml-py` (not `pynvml`) — `pynvml` is deprecated and will trigger a warning from PyTorch.
 
 ---
 
