@@ -1,78 +1,189 @@
-# GPU-Fingerprinting-for-Hardware-Security
-Classifying Unique Device Features in Embedded Systems
+# GPU Fingerprinting for Hardware Security
+**Classifying Unique Device Features in Embedded Systems**
 
-## Project Overview:
-This project focuses on classifying unique computer-based features of GPUs to explore hardware security and device identification in embedded-system contexts. The experiments are conducted on laptop and desktop NVIDIA GPUs (such as the RTX 3050 and RTX 3090) to model the same side-channel behavior expected in embedded and edge devices. The system logs performance metrics and applies machine learning to extract hardware-specific signatures, demonstrating the potential privacy risks of silent device tracking by websites and applications through GPU side-channels.
+Kenneth Fulton · Hop Le — Texas A&M University San Antonio
 
-## Prerequisites & Environment Setup:
-To build the data ingestion and machine learning pipeline, ensure your Python environment is set up with the following:
+---
 
- **Deep Learning / Workloads:** torch (PyTorch) for matrix multiplication (matmul) workloads.
+## Project Overview
 
- **Data Processing:** pandas and numpy for handling CSV outputs and calculating statistical features.
- 
- **Machine Learning:** scikit-learn for training classifiers (Random Forest, SVM, etc.) and generating evaluation metrics.
- 
- **Hardware Monitoring:** Tools or Python wrappers (like pynvml) capable of logging NVIDIA GPU telemetry.
- 
- ## Step-by-Step Implementation Guide
- 
- **Step 1:** Literature Review & Baseline Research
- 
- * Review existing research on GPU fingerprinting from ACM, IEEE, and arXiv.
- 
- * Analyze DRAWNAPART-style WebGL fingerprinting implementations and reference their open-source GitHub repositories to understand baseline methodologies.
- 
- **Step 2:** Workload Execution & Data Acquisition
- 
- * Develop a Python script to run intensive workloads, such as PyTorch matmul operations or render loops, directly on the NVIDIA GPU.
- 
- * While the workload runs, continuously log hardware performance metrics, including:
- 
- * GPU and memory utilization percentages.
- 
- * Temperature (°C) and power draw (W).
- 
- * Clock speeds (MHz) and execution timing.
- 
- * Output the logged telemetry data into CSV format for processing.
+This project builds an end-to-end GPU hardware fingerprinting pipeline. It collects NVIDIA GPU telemetry under controlled CUDA workloads, extracts statistical features via sliding windows, and trains ML classifiers to identify GPU devices by model. Motivated by DRAWNAPART (NDSS 2022), which proved that GPU hardware manufacturing variations produce measurable device signatures, this work demonstrates that system-level NVML telemetry is sufficient to classify GPU devices — establishing a silent hardware tracking risk outside browser environments.
 
- **Data Collection Instructions:**
+**GPUs tested:** RTX 3050 4GB Laptop · RTX 3060 Laptop · RTX 3090
 
- Run the following command once per GPU device. The built-in CUDA workload automatically cycles through 0%, 25%, 50%, 75%, and 100% GPU utilization levels (3 seconds each) to produce varied telemetry. The script auto-calibrates the matrix size to achieve consistent timing across different GPU models.
+---
 
- ```bash
- python collect_gpu_telemetry.py --workload --duration 5400 --interval 1
- ```
- 
- * This will help us collecting ~10,800 samples per GPU --> 365 data points for classifier machine learning model
+## Prerequisites
 
- * `--duration 5400` — runs for 90 minutes, capturing thermal stabilization and long-term clock/power variance
- * `--interval 1` — samples every 1 seconds (~10,800 samples per GPU),
- * `--workload` — enables the built-in PyTorch matmul stress loop; no external benchmark needed
- * Output is saved automatically as `<GPU_Name>_gpu_telemetry.csv` in the current directory
+```bash
+pip install torch pynvml pandas numpy scipy scikit-learn xgboost matplotlib joblib
+```
 
- Repeat for each GPU. Keep the output CSV files for Step 3 feature extraction. During feature extraction, each CSV is sliced into overlapping 30-second sliding windows — each window becomes one labeled data point for the ML classifier.
- 
- **Step 3:** Statistical Feature Extraction
- 
- * Ingest the raw CSV metrics and compute statistical features to build out your feature vectors.
- 
- Calculate the Mean, Variance, Skewness, and Standard Deviation for the collected metrics.
- 
- **Step 4:** ML Classification & Analysis
- 
- * Pass the extracted feature vectors into machine learning classifiers.
- Train models such as Random Forest (RF), Support Vector Machines (SVM), Decision Trees, or Logistic Regression to uniquely identify the specific host device.
- 
- * Ensure the model effectively demonstrates the risk of silent tracking by distinguishing between different devices (e.g., separating the RTX 3050 data from the 3090 data).
- 
- **Step 5:** Evaluation & Reporting
- 
- * Since there are no public Kaggle or HuggingFace datasets for GPU performance-based fingerprinting, evaluate the model strictly on your self-collected data.
- 
- * Assess the classifiers using standard evaluation metrics: Accuracy, Precision, Recall, F1-score, and False Positive/Negative Ratios.
- 
- * Compile the final results, methodologies, and findings into a PDF report.
- 
- * Build a live demonstration script that runs a workload and outputs a real-time classification confidence score for the detected device.
+- NVIDIA GPU with driver ≥ 520
+- CUDA-capable PyTorch build (`torch.cuda.is_available()` must return `True`)
+- Python 3.9+
+
+---
+
+## Pipeline Overview
+
+```
+Step 1: Data Collection     collect_gpu_telemetry.py  →  <GPU>_gpu_telemetry.csv
+Step 2: Feature Extraction  feature_extraction.py     →  features.csv
+Step 3: ML Classification   classifier.py             →  classification_results.csv + model_*.pkl
+Step 4: Live Demo           demo.py                   →  real-time confidence scores
+```
+
+---
+
+## Step 1 — Data Collection
+
+Run once per GPU device. The script runs a calibrated PyTorch CUDA matmul workload that randomly cycles through 0%, 25%, 50%, 75%, and 100% GPU utilization every 3 seconds, while logging NVML telemetry at 1-second intervals.
+
+```bash
+python collect_gpu_telemetry.py --workload --duration 5400 --interval 1
+```
+
+| Flag | Description |
+|---|---|
+| `--workload` | Enables the built-in CUDA matmul stress loop |
+| `--duration 5400` | Run for 90 minutes → ~5400 samples per GPU |
+| `--interval 1` | Sample every 1 second |
+| `--gpu 0` | GPU index (default 0); change if running on a secondary GPU |
+
+Output is saved automatically as `<GPU_Name>_gpu_telemetry.csv`. Repeat for each GPU and keep all CSVs in the same directory.
+
+---
+
+## Step 2 — Feature Extraction
+
+Ingests all telemetry CSVs, applies 30-second sliding windows with 15-second overlap, and computes mean, standard deviation, variance, and skewness per metric column. Each window becomes one labeled feature vector.
+
+```bash
+python feature_extraction.py
+```
+
+Optional flags:
+```bash
+python feature_extraction.py --window 30 --step 15 --output features.csv
+```
+
+| Flag | Description |
+|---|---|
+| `--window 30` | Window size in samples (30s at 1s interval) |
+| `--step 15` | Step size in samples (15s overlap between windows) |
+| `--input a.csv b.csv` | Explicit file list (default: all `*gpu_telemetry.csv` in current dir) |
+| `--output` | Output file (default: `features.csv`) |
+
+Output: `features.csv` — each row is one labeled feature vector.
+
+Expected output:
+```
+NVIDIA_GeForce_RTX_3050_4GB_Laptop_GPU_gpu_telemetry.csv: 5167 rows → 332 windows
+NVIDIA_GeForce_RTX_3060_Laptop_GPU_gpu_telemetry.csv:     4988 rows → 320 windows
+NVIDIA_GeForce_RTX_3090_gpu_telemetry.csv:                5090 rows → 327 windows
+Saved ~950 feature vectors to features.csv
+```
+
+---
+
+## Step 3 — ML Classification
+
+Trains Random Forest, SVM, XGBoost, and Decision Tree classifiers using 5-fold stratified cross-validation. Outputs accuracy, precision, recall, F1-score, FP/FN rates, confusion matrix plots, and saves trained models for the live demo.
+
+```bash
+python classifier.py
+```
+
+Optional flags:
+```bash
+python classifier.py --input features.csv --folds 5
+```
+
+To also train behavioral-only models (VRAM-size features removed):
+```bash
+python classifier.py --drop-trivial
+```
+
+| Flag | Description |
+|---|---|
+| `--input` | Feature matrix CSV (default: `features.csv`) |
+| `--folds` | Number of CV folds (default: 5) |
+| `--save-models` | Save trained models as `.pkl` files (default: on, required for demo) |
+| `--drop-trivial` | Drop VRAM-size features (mem_free_mib, mem_total_mib, mem_used_mib, mem_used_ratio) to evaluate behavioral-only fingerprinting |
+
+Outputs (run once without `--drop-trivial`, once with, to get all 8 models):
+- `classification_results.csv` — metrics table for all classifiers
+- `confusion_random_forest.png`, `confusion_svm.png`, `confusion_xgboost.png`, `confusion_decision_tree.png`
+- `model_random_forest.pkl`, `model_svm.pkl`, `model_xgboost.pkl`, `model_decision_tree.pkl`
+- `model_random_forest_no_mem.pkl`, `model_svm_no_mem.pkl`, `model_xgboost_no_mem.pkl`, `model_decision_tree_no_mem.pkl`
+- Top 15 most discriminative features printed to console (Random Forest)
+
+---
+
+## Step 4 — Live Demo
+
+Collects ~30 seconds of live telemetry from the current GPU, extracts one feature window, and runs the trained classifier to output a real-time device identification with confidence scores.
+
+```bash
+python demo.py
+```
+
+Optional flags:
+```bash
+python demo.py --model model_random_forest.pkl --gpu 0 --samples 30 --interval 1
+```
+
+| Flag | Description |
+|---|---|
+| `--model` | Trained `.pkl` model file (default: `model_random_forest.pkl`) |
+| `--gpu` | GPU index to fingerprint (default: 0) |
+| `--samples` | Samples to collect (default: 30 → ~30s) |
+| `--interval` | Sample interval in seconds (default: 1.0) |
+
+Example output:
+```
+Loaded: model_random_forest.pkl
+Known GPUs: ['NVIDIA GeForce RTX 3050 4GB Laptop GPU', 'NVIDIA GeForce RTX 3060 Laptop GPU', 'NVIDIA GeForce RTX 3090']
+
+Warming up workload (5s)...
+Collecting 30 samples at 1.0s interval...
+  [ 1/30] gpu=75%  temp=62C  power=38.2W
+  ...
+
+=======================================================
+  CLASSIFICATION RESULT
+=======================================================
+  Predicted GPU: NVIDIA GeForce RTX 3060 Laptop GPU
+
+  Confidence scores:
+    NVIDIA GeForce RTX 3060 Laptop GPU      91.5%  ████████████████████████████████████
+    NVIDIA GeForce RTX 3050 4GB Laptop GPU   6.0%  ██
+    NVIDIA GeForce RTX 3090                  2.5%  █
+=======================================================
+```
+
+---
+
+## Repository Structure
+
+```
+GPU-Fingerprinting-for-Hardware-Security/
+├── collect_gpu_telemetry.py                        # Step 1: telemetry collection
+├── feature_extraction.py                           # Step 2: sliding window feature extraction
+├── classifier.py                                   # Step 3: ML training and evaluation
+├── demo.py                                         # Step 4: live classification demo
+├── meta_data.csv                                   # Column definitions for telemetry schema
+├── NVIDIA_GeForce_RTX_3050_4GB_Laptop_GPU_gpu_telemetry.csv
+├── NVIDIA_GeForce_RTX_3060_Laptop_GPU_gpu_telemetry.csv
+├── NVIDIA_GeForce_RTX_3090_gpu_telemetry.csv
+├── features.csv                                    # Generated by feature_extraction.py
+├── classification_results.csv                      # Generated by classifier.py
+└── model_*.pkl                                     # Trained models, generated by classifier.py
+```
+
+---
+
+## References
+
+[1] Laor et al. 2022. DRAWNAPART: A Device Identification Technique based on Remote GPU Fingerprinting. NDSS 2022. doi:10.14722/ndss.2022.24093
